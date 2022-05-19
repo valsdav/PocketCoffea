@@ -13,47 +13,10 @@ from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
 
 from parameters.preselection import object_preselection
-from parameters.jec import JECjsonFiles
+from parameters.jec import JECjsonFiles, JECversions
 
 ak.behavior.update(nanoaod.behavior)
     
-# example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
-def jet_correction(events, Jet, typeJet, year, JECversion, verbose=False):
-    jsonfile = JECjsonFiles[year][[t for t in ['AK4', 'AK8'] if typeJet.startswith(t)][0]]
-    JECfile = correctionlib.CorrectionSet.from_file(jsonfile)
-    corr = JECfile.compound[f'{JECversion}_L1L2L3Res_{typeJet}']
-
-    # until correctionlib handles jagged data natively we have to flatten and unflatten
-    jets = events[Jet]
-    jets['pt_raw'] = (1 - jets['rawFactor']) * jets['pt']
-    jets['mass_raw'] = (1 - jets['rawFactor']) * jets['mass']
-    jets['rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, jets.pt)[0]
-    j, nj = ak.flatten(jets), ak.num(jets)
-    flatCorrFactor = corr.evaluate( np.array(j['area']), np.array(j['eta']), np.array(j['pt_raw']), np.array(j['rho']) )
-    corrFactor = ak.unflatten(flatCorrFactor, nj)
-
-    corrected_jets = copy.copy(jets)
-    corrected_jets['pt'] = jets['pt_raw']* corrFactor
-    corrected_jets['mass'] = jets['mass_raw']* corrFactor
-
-    if verbose:
-        print()
-        print(events.event[0], 'starting columns:',ak.fields(jets), end='\n\n')
-
-        print(events.event[0], 'untransformed pt ratios',jets.pt/jets.pt_raw)
-        print(events.event[0], 'untransformed mass ratios',jets.mass/jets.mass_raw)
-
-        print(events.event[0], 'transformed pt ratios',corrected_jets.pt/corrected_jets.pt_raw)
-        print(events.event[0], 'transformed mass ratios',corrected_jets.mass/corrected_jets.mass_raw)
-
-        print()
-        print(events.event[0], 'transformed columns:', ak.fields(corrected_jets), end='\n\n')
-
-        #print('JES UP pt ratio',corrected_jets.JES_jes.up.pt/corrected_jets.pt_raw)
-        #print('JES DOWN pt ratio',corrected_jets.JES_jes.down.pt/corrected_jets.pt_raw, end='\n\n')
-
-    return corrected_jets
-
 def lepton_selection(events, Lepton, finalstate):
 
     leptons = events[Lepton]
@@ -79,6 +42,57 @@ def lepton_selection(events, Lepton, finalstate):
         good_leptons = passes_eta & passes_pt & passes_iso & passes_id
 
     return leptons[good_leptons]
+
+
+def init_jec_correctors():
+    '''
+    All the possible JEC correctors are initialized and returned as a dictionary
+    '''
+    jec_correctors = {}
+    for year, files in JECjsonFiles.items():
+        for jetType, jsonfile in files.items():
+            if jetType == "AK8PFpuppi": continue #not implemented yet
+            JECfile = correctionlib.CorrectionSet.from_file(jsonfile)
+            # TODO: This is not working with data (list of eras)
+            corrMC = JECfile.compound[f'{JECversions[year]["MC"]}_L1L2L3Res_{jetType}']
+            # TODO Do the same for data with eras
+            jec_correctors[(year, jetType, "MC")] = corrMC
+    return jec_correctors
+
+# example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
+def jet_correction(events, Jet, corrector, verbose=False):
+    # until correctionlib handles jagged data natively we have to flatten and unflatten
+    jets = events[Jet]
+    jets['pt_raw'] = (1 - jets['rawFactor']) * jets['pt']
+    jets['mass_raw'] = (1 - jets['rawFactor']) * jets['mass']
+    jets['rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, jets.pt)[0]
+    j, nj = ak.flatten(jets), ak.num(jets)
+    flatCorrFactor = corrector.evaluate( np.array(j['area']), np.array(j['eta']), np.array(j['pt_raw']), np.array(j['rho']) )
+    corrFactor = ak.unflatten(flatCorrFactor, nj)
+
+    corrected_jets = copy.copy(jets)
+    corrected_jets['pt'] = jets['pt_raw']* corrFactor
+    corrected_jets['mass'] = jets['mass_raw']* corrFactor
+
+    if verbose:
+        print()
+        print(events.event[0], 'starting columns:',ak.fields(jets), end='\n\n')
+
+        print(events.event[0], 'untransformed pt ratios',jets.pt/jets.pt_raw)
+        print(events.event[0], 'untransformed mass ratios',jets.mass/jets.mass_raw)
+
+        print(events.event[0], 'transformed pt ratios',corrected_jets.pt/corrected_jets.pt_raw)
+        print(events.event[0], 'transformed mass ratios',corrected_jets.mass/corrected_jets.mass_raw)
+
+        print()
+        print(events.event[0], 'transformed columns:', ak.fields(corrected_jets), end='\n\n')
+
+        #print('JES UP pt ratio',corrected_jets.JES_jes.up.pt/corrected_jets.pt_raw)
+        #print('JES DOWN pt ratio',corrected_jets.JES_jes.down.pt/corrected_jets.pt_raw, end='\n\n')
+
+    return corrected_jets
+
+
 
 # N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
 def jet_selection(events, Jet, finalstate, btag=None):
@@ -207,3 +221,4 @@ def jet_nohiggs_selection(jets, mask_jets, fatjets, dr=1.2):
     jets_pass_dr = nested_mask.all()
 
     return mask_jets & jets_pass_dr
+

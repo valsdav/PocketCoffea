@@ -12,7 +12,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import correctionlib
 
-from lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
+from lib.objects import jet_correction, lepton_selection, jet_selection, init_jec_correctors, btagging, get_dilepton
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
@@ -43,7 +43,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # After the preselections more cuts are defined and combined in categories.
         # These cuts are applied only before the output 
         self._cuts_masks = PackedSelection()
-        
+
+        # JEC config
+        self._jec_correctors = init_jec_correctors()
+        print("Costructore")    
         # Accumulators for the output
         self._accum_dict = {}
         self._hist_dict = {}
@@ -91,7 +94,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._accumulator = processor.dict_accumulator(self._accum_dict)
         
     @property
-    def accumulator(self):
+    def accumulator(self): 
         return self._accumulator
 
     @property
@@ -105,9 +108,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self.isMC = 'genWeight' in self.events.fields
-        # JEC
-        self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
+        self._isMC = 'genWeight' in self.events.fields
         # pileup
         self._puFile = pileupJSONfiles[self._year]['file']
         self._puName = pileupJSONfiles[self._year]['name']
@@ -117,14 +118,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         mask_clean = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = [
             "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
-        if not self.isMC:
+        if not self._isMC:
             flags.append("eeBadScFilter")
         for flag in flags:
             mask_clean = mask_clean & getattr(self.events.Flag, flag)
         mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
-        if not self.isMC and not (lumimask is None):
+        if not self._isMC and not (lumimask is None):
             mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
             mask_clean = mask_clean & mask_lumi
         # add the basic clearning to the preselection mask
@@ -133,7 +134,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def apply_JEC(self):
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion)
+        jec_corrector_file = self._jec_correctors[(self._year, "AK4PFchs", "MC" if self._isMC else "Data")]
+        jec_corrector = jec_corrector_file.compound[f"{JECversions[self._year]['MC']}_L1L2L3Res_AK4PFchs"]
+        self.events.Jet = jet_correction(self.events, "Jet", jec_corrector)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -194,7 +197,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     def compute_weights(self):
         self.weights = Weights(self.nevents)
-        if self.isMC:
+        if self._isMC:
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
@@ -232,7 +235,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
         self.output['nevts_initial'][self._sample] += self.nEvents_initial
-        if self.isMC:
+        if self._isMC:
             # This is computed before any preselection
             self.output['sumw'][self._sample] += sum(self.events.genWeight)
 
