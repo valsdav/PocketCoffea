@@ -3,10 +3,10 @@ import math
 
 
 default_axis_settings = {
-        'muon_pt'                  : {"field":"pt", "bins": 200, "start":0, 'stop' : 1000, "lim" : (0,500), 'label' : "$p_{T}^{\mu}$ [GeV]"},
+        'muon_pt'                  : {"field":"pt", "bins": 200, "start":0, 'stop' : 600, "lim" : (0,500), 'label' : "$p_{T}^{\mu}$ [GeV]"},
         'muon_eta'                 : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{\mu}$"},
         'muon_phi'                 : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi), 'label' : "$\phi_{\mu}$"},
-        'electron_pt'              : {"field":"pt", "bins": 200, "start":0, 'stop' : 1000, "lim" : (0,500), 'label' : "$p_{T}^{e}$ [GeV]"},
+        'electron_pt'              : {"field":"pt", "bins": 200, "start":0, 'stop' : 600, "lim" : (0,500), 'label' : "$p_{T}^{e}$ [GeV]"},
         'electron_eta'             : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{e}$"},
         "electron_etaSC"           : {"field":"etaSC", "type":"variable", "bins": [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8,
                                                -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442,
@@ -32,7 +32,7 @@ default_axis_settings = {
 collection_fields = {
     'jet': ["eta","pt","phi", "btagDeepFlavB"],
     'parton':  ["eta","pt","phi", "dRMatchedJet","pdgId"],
-    'electron': ["eta","pt","phi", "etaSC"],
+    'electron': ["eta","pt","phi"],
     'muon':  ["eta","pt","phi"]
 } 
 

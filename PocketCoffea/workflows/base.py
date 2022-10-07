@@ -193,9 +193,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self):
+        # We use num because none of these collections contain Nones
         self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
         self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
-        self.events["nLepGood"]      = self.events["nMuonGood"] + self.events["nElectronGood"]
+        self.events["nLeptonGood"]      = self.events["nMuonGood"] + self.events["nElectronGood"]
         self.events["nJetGood"]      = ak.num(self.events.JetGood)
         self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
