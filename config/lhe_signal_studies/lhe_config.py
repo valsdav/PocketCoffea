@@ -25,10 +25,10 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 30,
+        "scaleout"       : 40,
         "partition"      : "short",
         "walltime"       : "01:00:00",
-        "mem_per_worker" : "6GB", # GB
+        "mem_per_worker" : "8GB", # GB
         "exclusive"      : False,
         "chunk"          : 500000,
         "retries"        : 30,
@@ -46,10 +46,13 @@ cfg =  {
     "preselections" : [passthrough],
 
     "categories": {
+        "incl": [passthrough],
         "presel" : [semileptonic_presel],
 
         "presel_semilep": [semilep_lhe, semileptonic_presel],
         "presel_dilep": [dilep_lhe, semileptonic_presel],
+        "presel_dilep_notau": [dilep_notau_lhe, semileptonic_presel],
+        "presel_dilep_onetau": [dilep_onetau_lhe, semileptonic_presel],
         "presel_had": [had_lhe, semileptonic_presel],
 
         "1lep": [get_nObj_eq(1, minpt=26, coll="LeptonGood") ],
@@ -60,7 +63,7 @@ cfg =  {
         "0lep_dilep":   [dilep_lhe,   get_nObj_eq(0, coll="LeptonGood") ],
         "0lep_had":     [had_lhe,     get_nObj_eq(0, coll="LeptonGood") ],
         
-        "1ele_semilep": [semilep_lhe, get_nObj_eq(1, minpt=30, coll="ElectronGood") ], 
+        "1ele_semilep": [semilep_lhe, get_nObj_eq(1, minpt=30, coll="ElectronGood") ],
         "1ele_dilep":   [dilep_lhe,   get_nObj_eq(1, minpt=30, coll="ElectronGood") ],
         "1ele_had":     [had_lhe,     get_nObj_eq(1, minpt=30, coll="ElectronGood") ],
         "1mu_semilep": [semilep_lhe, get_nObj_eq(1, minpt=26, coll="MuonGood") ], 
@@ -70,6 +73,11 @@ cfg =  {
         "1lep_dilep":   [dilep_lhe,   get_nObj_eq(1, minpt=26, coll="LeptonGood") ],      
         "1lep_had":     [had_lhe,     get_nObj_eq(1, minpt=26, coll="LeptonGood") ],
 
+
+        "1ele_semilep_notau": [semilep_notau_lhe, get_nObj_eq(1, minpt=30, coll="ElectronGood") ], 
+        "1muon_semilep_notau": [semilep_notau_lhe, get_nObj_eq(1, minpt=26, coll="MuonGood") ],
+        "1lep_semilep_notau":   [semilep_notau_lhe,   get_nObj_eq(1, minpt=26, coll="LeptonGood") ],
+        
         "1ele_dilep_notau":   [dilep_notau_lhe,   get_nObj_eq(1, minpt=30, coll="ElectronGood") ],
         "1mu_dilep_notau":   [dilep_notau_lhe,   get_nObj_eq(1, minpt=26, coll="MuonGood") ],
         "1lep_dilep_notau":   [dilep_notau_lhe,   get_nObj_eq(1, minpt=26, coll="LeptonGood") ],
@@ -101,18 +109,24 @@ cfg =  {
         **ele_hists(coll="ElectronGood", pos=1),
         **muon_hists(coll="MuonGood", pos=0),
         **muon_hists(coll="MuonGood", pos=1),
+        **lepton_hists(coll="LeptonGood", pos=0),
+        **lepton_hists(coll="LeptonGood", pos=1),
 
         **ele_hists(coll="LHE_Electron", pos=0),
         **ele_hists(coll="LHE_Electron", pos=1),
         **muon_hists(coll="LHE_Muon", pos=0),
         **muon_hists(coll="LHE_Muon", pos=1),
-        **muon_hists(coll="LHE_Tau", pos=0),
-        **muon_hists(coll="LHE_Tau", pos=1),
+        **lepton_hists(coll="LHE_Tau", pos=0),
+        **lepton_hists(coll="LHE_Tau", pos=1),
+        **lepton_hists(coll="LHE_Lepton", pos=0),
+        **lepton_hists(coll="LHE_Lepton", pos=1),
         # Reco not-cleaned leptons matched to the LHE candidate
         **ele_hists(coll="LHE_matched_ele", pos=0),
         **ele_hists(coll="LHE_matched_ele", pos=1),
         **muon_hists(coll="LHE_matched_muon", pos=0),
         **muon_hists(coll="LHE_matched_muon", pos=1),
+        **lepton_hists(coll="LHE_matched_tau", pos=0),
+        **lepton_hists(coll="LHE_matched_tau", pos=1),
 
         "lhe_matched_ele_1_mvaId" : HistConf([Axis(coll="LHE_matched_ele", field="mvaFall17V2Iso_WP80", pos=0, type="int", start=0, stop=2, label="mvaid")]),
         "lhe_matched_ele_2_mvaId" : HistConf([Axis(coll="LHE_matched_ele", field="mvaFall17V2Iso_WP80", pos=1, type="int", start=0, stop=2, label="mvaid")]),
@@ -128,8 +142,20 @@ cfg =  {
         **count_hist(name="nmuon_incl", coll="MuonGood",bins=8, start=0, stop=8),
         **count_hist(name="nlepton_incl", coll="LeptonGood",bins=8, start=0, stop=8),
         **count_hist(name="nJets", coll="JetGood",bins=14, start=0, stop=14),
-               
-        
+
+
+        "nlepLHE_nlepReco" : HistConf(
+            [Axis(field="nLHE_Lepton", start=0, stop=6, label="Number of LHE Leptons", type="int"),
+             Axis(field="nLHE_Electron", start=0, stop=6, label="Number of LHE Electron",type="int"),
+             Axis(field="nLHE_Muon", start=0, stop=6, label="Number of LHE Muon",type="int"),
+             Axis(field="nLHE_Tau", start=0, stop=6, label="Number of LHE Tau",type="int"),
+             Axis(field="nLeptonGood", start=0, stop=6, label="Number of Lepton Good",type="int"),
+             Axis(field="nElectronGood", start=0, stop=6, label="Number of Lepton Good",type="int"),
+             Axis(field="nMuonGood", start=0, stop=6, label="Number of Lepton Good",type="int")],
+            only_categories=["1lep","1lep_semilep_notau", "1lep_dilep_notau","1lep_dilep_onetau",
+                             "presel_semilep","presel_semilep_notau","presel_semilep_onetau"]
+        ),
+
     },
     
        "weights": {

@@ -3,6 +3,9 @@ import math
 
 
 default_axis_settings = {
+        'lepton_pt'                  : {"field":"pt", "bins": 200, "start":0, 'stop' : 600, "lim" : (0,500), 'label' : "$p_{T}^{lep}$ [GeV]"},
+        'lepton_eta'                 : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{lep}$"},
+        'lepton_phi'                 : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi), 'label' : "$\phi_{lep}$"},
         'muon_pt'                  : {"field":"pt", "bins": 200, "start":0, 'stop' : 600, "lim" : (0,500), 'label' : "$p_{T}^{\mu}$ [GeV]"},
         'muon_eta'                 : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{\mu}$"},
         'muon_phi'                 : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi), 'label' : "$\phi_{\mu}$"},
@@ -33,7 +36,8 @@ collection_fields = {
     'jet': ["eta","pt","phi", "btagDeepFlavB"],
     'parton':  ["eta","pt","phi", "dRMatchedJet","pdgId"],
     'electron': ["eta","pt","phi"],
-    'muon':  ["eta","pt","phi"]
+    'muon':  ["eta","pt","phi"],
+    'lepton': ["eta","pt","phi"]
 } 
 
 
@@ -76,6 +80,12 @@ def muon_hists(coll="MuonGood",  pos=None, fields=None, name=None):
     if name == None:
         name = coll
     return _get_default_hist(name, "muon", coll, pos, fields)
+
+def lepton_hists(coll,  pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "lepton", coll, pos, fields)
+
 
 def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
     if name == None:

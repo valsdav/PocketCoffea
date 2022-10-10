@@ -31,10 +31,16 @@ class LHESignalStudies(ttHbbBaseProcessor):
         # We want the collection of leptons (not cleaned) matched to the collection of LHE leptons
         matched_ele, matched_lhe_ele, _ = object_matching(self.events.Electron, self.events.LHE_Electron, dr_min=self.dr_min)
         matched_mu, matched_lhe_mu, _ = object_matching(self.events.Muon, self.events.LHE_Muon, dr_min=self.dr_min)
+        # Match the tau with the Jets 
+        matched_tau, matched_lhe_tau, _ = object_matching(self.events.Jet, self.events.LHE_Tau, dr_min=self.dr_min)
+
         self.events["LHE_matched_ele"] = matched_ele
         self.events["LHE_matched_muon"] = matched_mu
+        self.events["LHE_matched_tau"] = matched_tau
         # Count the number of partons at differenct 
-        self.events["nLHE_Electron"] = ak.count(self.events.LHE_Electron.pt, axis=1) 
-        self.events["nLHE_Muon"] = ak.count(self.events.LHE_Muon.pt, axis=1)
-        self.events["nLHE_Tau"] = ak.count(self.events.LHE_Tau.pt, axis=1)
+        self.events["nLHE_Electron"] = ak.fill_none(ak.count(self.events.LHE_Electron.pt, axis=1) , 0.)
+        self.events["nLHE_Muon"] = ak.fill_none(ak.count(self.events.LHE_Muon.pt, axis=1), 0.)
+        self.events["nLHE_Tau"] = ak.fill_none(ak.count(self.events.LHE_Tau.pt, axis=1), 0.)
         self.events["nLHE_Lepton"] =  self.events["nLHE_Electron"] + self.events["nLHE_Muon"]+self.events["nLHE_Tau"]
+        
+
